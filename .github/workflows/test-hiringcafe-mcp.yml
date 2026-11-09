@@ -1,29 +1,82 @@
-name: Test HiringCafe UXR Search
+name: Compare HiringCafe UXR Searches
 
 on:
   workflow_dispatch:
 
 jobs:
-  test-mcp:
+  compare-searches:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Search HiringCafe for UX research
+      - name: Run four UXR searches
         run: |
-          curl -s -X POST https://hiringcafe.com/api/mcp \
-            -H 'Content-Type: application/json' \
-            -H 'Accept: application/json, text/event-stream' \
-            -d '{
-              "jsonrpc": "2.0",
-              "id": 1,
-              "method": "tools/call",
-              "params": {
-                "name": "search_jobs",
-                "arguments": {
-                  "search": "UX Research",
-                  "location": "United States",
-                  "posted_within_days": 7,
-                  "limit": 25
-                }
+          python - <<'PY'
+          import json
+          import urllib.request
+
+          endpoint = "https://hiringcafe.com/api/mcp"
+
+          searches = [
+              "UX Researcher",
+              "User Researcher",
+              "Design Researcher",
+              "Product Researcher",
+          ]
+
+          def search_jobs(term, request_id):
+              payload = {
+                  "jsonrpc": "2.0",
+                  "id": request_id,
+                  "method": "tools/call",
+                  "params": {
+                      "name": "search_jobs",
+                      "arguments": {
+                          "search": term,
+                          "location": "United States",
+                          "posted_within_days": 7,
+                          "limit": 25
+                      }
+                  }
               }
-            }' | python -m json.tool
+
+              request = urllib.request.Request(
+                  endpoint,
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={
+                      "Content-Type": "application/json",
+                      "Accept": "application/json, text/event-stream"
+                  },
+                  method="POST"
+              )
+
+              with urllib.request.urlopen(request, timeout=60) as response:
+                  return json.loads(response.read().decode("utf-8"))
+
+          for i, term in enumerate(searches, start=1):
+              print()
+              print("=" * 70)
+              print(f"SEARCH: {term}")
+              print("=" * 70)
+
+              try:
+                  result = search_jobs(term, i)
+
+                  content = (
+                      result
+                      .get("result", {})
+                      .get("content", [])
+                  )
+
+                  if not content:
+                      print("No content returned.")
+                      print(json.dumps(result, indent=2))
+                      continue
+
+                  for item in content:
+                      if item.get("type") == "text":
+                          print(item.get("text", ""))
+
+              except Exception as exc:
+                  print(f"ERROR: {exc}")
+
+          PY
