@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: "7,37 * * * *"
+    - cron: "17 */2 * * *"
 
 permissions:
   contents: write
@@ -22,12 +22,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install requirements
-        run: pip install -r requirements.txt
-
       - name: Check HiringCafe
         env:
-          HIRINGCAFE_URL: ${{ secrets.HIRINGCAFE_URL }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python watch_jobs.py
 
@@ -35,8 +31,12 @@ jobs:
         run: |
           git config user.name "UXR Job Watcher"
           git config user.email "actions@users.noreply.github.com"
-          git add seen_jobs.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Update seen jobs"
-            git push
+
+          if [ -f seen_jobs.json ]; then
+            git add seen_jobs.json
+
+            if ! git diff --cached --quiet; then
+              git commit -m "Update seen UXR jobs"
+              git push
+            fi
           fi
