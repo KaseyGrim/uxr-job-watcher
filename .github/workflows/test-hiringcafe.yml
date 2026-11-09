@@ -1,0 +1,49 @@
+name: Test HiringCafe Data Access
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-hiringcafe:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out my repository
+        uses: actions/checkout@v4
+
+      - name: Check out HiringCafe scraper
+        uses: actions/checkout@v4
+        with:
+          repository: CJ7862/HiringCafe-Scraper
+          path: hiringcafe-scraper
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install scraper requirements
+        run: pip install -r hiringcafe-scraper/requirements.txt
+
+      - name: Test HiringCafe structured data
+        working-directory: hiringcafe-scraper
+        run: |
+          python main.py \
+            --query "researcher" \
+            --location "United States" \
+            --days-old 7 \
+            --formats json
+
+      - name: Show generated files
+        if: always()
+        run: |
+          echo "Generated result files:"
+          find hiringcafe-scraper/results -maxdepth 2 -type f -print 2>/dev/null || true
+
+      - name: Upload test results
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hiringcafe-test-results
+          path: hiringcafe-scraper/results/
+          retention-days: 1
