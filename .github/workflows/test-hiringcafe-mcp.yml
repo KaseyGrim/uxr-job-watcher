@@ -1,4 +1,4 @@
-name: Test HiringCafe Official MCP
+name: Test HiringCafe UXR Search
 
 on:
   workflow_dispatch:
@@ -8,10 +8,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Test HiringCafe MCP
+      - name: Search HiringCafe for UX research
         run: |
-          echo "Testing HiringCafe official MCP endpoint..."
-
-          curl -i -X POST https://hiringcafe.com/api/mcp \
+          curl -s -X POST https://hiringcafe.com/api/mcp \
             -H 'Content-Type: application/json' \
-            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+            -H 'Accept: application/json, text/event-stream' \
+            -d '{
+              "jsonrpc": "2.0",
+              "id": 1,
+              "method": "tools/call",
+              "params": {
+                "name": "search_jobs",
+                "arguments": {
+                  "search": "UX Research",
+                  "location": "United States",
+                  "posted_within_days": 7,
+                  "limit": 25
+                }
+              }
+            }' | python -m json.tool
