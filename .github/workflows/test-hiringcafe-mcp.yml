@@ -1,0 +1,17 @@
+name: Test HiringCafe Official MCP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-mcp:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test HiringCafe MCP
+        run: |
+          echo "Testing HiringCafe official MCP endpoint..."
+
+          curl -i -X POST https://hiringcafe.com/api/mcp \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
