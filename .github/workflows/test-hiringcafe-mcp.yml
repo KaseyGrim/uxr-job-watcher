@@ -1,14 +1,14 @@
-name: Compare HiringCafe UXR Searches
+name: Test HiringCafe Boolean Search
 
 on:
   workflow_dispatch:
 
 jobs:
-  compare-searches:
+  test-boolean:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Run four UXR searches
+      - name: Compare Product Researcher queries
         run: |
           python - <<'PY'
           import json
@@ -17,13 +17,14 @@ jobs:
           endpoint = "https://hiringcafe.com/api/mcp"
 
           searches = [
-              "UX Researcher",
-              "User Researcher",
-              "Design Researcher",
               "Product Researcher",
+              '"Product Researcher"',
+              '"Product Researcher" NOT Security NOT Robotics NOT Scientist',
+              '"Design Researcher"',
+              '"Design Researcher" NOT Designer'
           ]
 
-          def search_jobs(term, request_id):
+          def run_search(term, request_id):
               payload = {
                   "jsonrpc": "2.0",
                   "id": request_id,
@@ -39,7 +40,7 @@ jobs:
                   }
               }
 
-              request = urllib.request.Request(
+              req = urllib.request.Request(
                   endpoint,
                   data=json.dumps(payload).encode("utf-8"),
                   headers={
@@ -49,34 +50,22 @@ jobs:
                   method="POST"
               )
 
-              with urllib.request.urlopen(request, timeout=60) as response:
-                  return json.loads(response.read().decode("utf-8"))
+              with urllib.request.urlopen(req, timeout=45) as r:
+                  return json.loads(r.read().decode("utf-8"))
 
-          for i, term in enumerate(searches, start=1):
-              print()
-              print("=" * 70)
-              print(f"SEARCH: {term}")
+          for i, term in enumerate(searches, 1):
+              print("\n" + "=" * 70)
+              print("QUERY:", term)
               print("=" * 70)
 
               try:
-                  result = search_jobs(term, i)
+                  result = run_search(term, i)
 
-                  content = (
-                      result
-                      .get("result", {})
-                      .get("content", [])
-                  )
-
-                  if not content:
-                      print("No content returned.")
-                      print(json.dumps(result, indent=2))
-                      continue
-
-                  for item in content:
+                  for item in result.get("result", {}).get("content", []):
                       if item.get("type") == "text":
                           print(item.get("text", ""))
 
-              except Exception as exc:
-                  print(f"ERROR: {exc}")
+              except Exception as e:
+                  print("ERROR:", e)
 
           PY
