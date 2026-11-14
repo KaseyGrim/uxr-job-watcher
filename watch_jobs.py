@@ -195,6 +195,25 @@ def remote_label(job):
     return "Remote eligibility unclear"
 
 
+def safe_header(value):
+    """Make text safe for HTTP headers without changing notification body text."""
+    replacements = {
+        "\u2014": "-",   # em dash
+        "\u2013": "-",   # en dash
+        "\u2018": "'",   # left single quote
+        "\u2019": "'",   # right single quote
+        "\u201c": '"',   # left double quote
+        "\u201d": '"',   # right double quote
+        "\u2026": "...", # ellipsis
+        "\u00a0": " ",   # non-breaking space
+    }
+
+    for original, replacement in replacements.items():
+        value = value.replace(original, replacement)
+
+    return value.encode("latin-1", errors="replace").decode("latin-1")
+
+
 def send_notification(job):
     title = job.get("title", "New research job")
     company = job.get("company", "Unknown company")
@@ -208,13 +227,12 @@ def send_notification(job):
     ]
 
     message_lines.extend(details)
-
     message = "\n".join(message_lines)
 
     endpoint = f"https://ntfy.sh/{NTFY_TOPIC}"
 
     headers = {
-        "Title": title,
+        "Title": safe_header(title),
         "Priority": "high",
         "Tags": "mag,briefcase",
         "Click": url,
@@ -229,6 +247,7 @@ def send_notification(job):
 
     with urllib.request.urlopen(req, timeout=30) as response:
         response.read()
+
 
 
 def main():
