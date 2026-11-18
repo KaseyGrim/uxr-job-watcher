@@ -1,0 +1,54 @@
+name: Test HiringCafe MCP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test one HiringCafe search
+        run: |
+          python - <<'PY'
+          import json
+          import urllib.request
+          import urllib.error
+
+          url = "https://hiringcafe.com/api/mcp"
+
+          payload = {
+              "jsonrpc": "2.0",
+              "id": 1,
+              "method": "tools/call",
+              "params": {
+                  "name": "search_jobs",
+                  "arguments": {
+                      "search": "\"UX Researcher\"",
+                      "location": "United States",
+                      "posted_within_days": 1,
+                      "limit": 10
+                  }
+              }
+          }
+
+          req = urllib.request.Request(
+              url,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Content-Type": "application/json",
+                  "Accept": "application/json, text/event-stream"
+              },
+              method="POST"
+          )
+
+          try:
+              with urllib.request.urlopen(req, timeout=45) as response:
+                  print("HTTP:", response.status)
+                  print(response.read().decode("utf-8"))
+
+          except urllib.error.HTTPError as e:
+              print("HTTP ERROR:", e.code)
+              print(e.read().decode("utf-8", errors="replace"))
+              raise
+          PY
